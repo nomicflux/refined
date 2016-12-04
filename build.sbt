@@ -86,20 +86,21 @@ lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
 
 lazy val docs = project
+  .dependsOn(coreJVM)
   .enablePlugins(MicrositesPlugin)
   .settings(moduleName := s"$projectName-docs")
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .settings(siteSettings)
+  .settings(micrositeSettings)
   .settings(
     tutScalacOptions := scalacOptions.value,
     tutSourceDirectory := baseDirectory.value / "src" /*,
     tutTargetDirectory := baseDirectory.value */
   )
-  .dependsOn(coreJVM)
 
 lazy val scalacheck = crossProject
   .in(file("contrib/scalacheck"))
+  .dependsOn(core)
   .settings(moduleName := s"$projectName-scalacheck")
   .settings(submoduleSettings: _*)
   .jvmSettings(submoduleJvmSettings: _*)
@@ -111,13 +112,13 @@ lazy val scalacheck = crossProject
       import org.scalacheck.Arbitrary
     """
   )
-  .dependsOn(core)
 
 lazy val scalacheckJVM = scalacheck.jvm
 lazy val scalacheckJS = scalacheck.js
 
 lazy val scalaz = crossProject
   .in(file("contrib/scalaz"))
+  .dependsOn(core % "compile->compile;test->test")
   .settings(moduleName := s"$projectName-scalaz")
   .settings(submoduleSettings: _*)
   .jvmSettings(submoduleJvmSettings: _*)
@@ -131,13 +132,13 @@ lazy val scalaz = crossProject
       import _root_.scalaz.@@
     """
   )
-  .dependsOn(core % "compile->compile;test->test")
 
 lazy val scalazJVM = scalaz.jvm
 lazy val scalazJS = scalaz.js
 
 lazy val scodec = crossProject
   .in(file("contrib/scodec"))
+  .dependsOn(core % "compile->compile;test->test")
   .settings(moduleName := s"$projectName-scodec")
   .settings(submoduleSettings: _*)
   .jvmSettings(submoduleJvmSettings: _*)
@@ -151,7 +152,6 @@ lazy val scodec = crossProject
       $commonImports
     """
   )
-  .dependsOn(core % "compile->compile;test->test")
 
 lazy val scodecJVM = scodec.jvm
 lazy val scodecJS = scodec.js
@@ -304,7 +304,7 @@ lazy val releaseSettings = {
       commitReleaseVersion,
       tagRelease,
       publishArtifacts,
-      releaseStepTask(GhPagesKeys.pushSite in "coreJVM"),
+      releaseStepTask(publishMicrosite in "docs"),
       setNextVersion,
       commitNextVersion,
       pushChanges
@@ -312,10 +312,13 @@ lazy val releaseSettings = {
   )
 }
 
-lazy val siteSettings = Def.settings(
+lazy val micrositeSettings = Def.settings(
+  micrositeName := projectName,
+  micrositeBaseUrl := projectName,
+  micrositeDocumentationUrl := "latest/api",
   micrositeGithubOwner := gitHubOwner,
   micrositeGithubRepo := projectName,
-  git.remoteRepo := gitDevUrl
+  organizationName := "Frank S. Thomas"
 )
 
 lazy val miscSettings = Def.settings(
