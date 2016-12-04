@@ -8,22 +8,6 @@ val gitHubOwner = "fthomas"
 val gitPubUrl = s"https://github.com/$gitHubOwner/$projectName.git"
 val gitDevUrl = s"git@github.com:$gitHubOwner/$projectName.git"
 
-val commonImports = s"""
-  import $rootPkg._
-  import $rootPkg.api._
-  import $rootPkg.api.Inference.==>
-  import $rootPkg.api.RefType.ops._
-  import $rootPkg.auto._
-  import $rootPkg.boolean._
-  import $rootPkg.char._
-  import $rootPkg.collection._
-  import $rootPkg.generic._
-  import $rootPkg.numeric._
-  import $rootPkg.string._
-  import shapeless.{ ::, HList, HNil }
-  import shapeless.nat._
-"""
-
 val macroCompatVersion = "1.1.1"
 val macroParadiseVersion = "2.1.0"
 val shapelessVersion = "2.3.2"
@@ -67,7 +51,6 @@ lazy val core = crossProject
   .settings(submoduleSettings: _*)
   .jvmSettings(submoduleJvmSettings: _*)
   .jsSettings(submoduleJsSettings: _*)
-  .settings(miscSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -76,10 +59,11 @@ lazy val core = crossProject
       "org.scalacheck" %%% "scalacheck" % scalaCheckVersion % "test",
       macroParadise
     ),
-    initialCommands := s"""
-      $commonImports
+    initialCommands += s"""
       import shapeless.tag.@@
-    """
+    """,
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := s"$rootPkg.internal"
   )
 
 lazy val coreJVM = core.jvm
@@ -97,6 +81,13 @@ lazy val docs = project
     tutSourceDirectory := baseDirectory.value / "src" /*,
     tutTargetDirectory := baseDirectory.value */
   )
+  .settings(
+    Def.settings(
+      unidocSettings,
+      UnidocKeys.unidocProjectFilter in (ScalaUnidoc, UnidocKeys.unidoc) :=
+        inAnyProject -- inProjects(allSubprojectsJS.map(LocalProject.apply): _*)
+    )
+  )
 
 lazy val scalacheck = crossProject
   .in(file("contrib/scalacheck"))
@@ -107,8 +98,7 @@ lazy val scalacheck = crossProject
   .jsSettings(submoduleJsSettings: _*)
   .settings(
     libraryDependencies += "org.scalacheck" %%% "scalacheck" % scalaCheckVersion,
-    initialCommands := s"""
-      $commonImports
+    initialCommands += s"""
       import org.scalacheck.Arbitrary
     """
   )
@@ -125,8 +115,7 @@ lazy val scalaz = crossProject
   .jsSettings(submoduleJsSettings: _*)
   .settings(
     libraryDependencies += "org.scalaz" %%% "scalaz-core" % scalazVersion,
-    initialCommands := s"""
-      $commonImports
+    initialCommands += s"""
       import $rootPkg.scalaz._
       import $rootPkg.scalaz.auto._
       import _root_.scalaz.@@
@@ -147,10 +136,7 @@ lazy val scodec = crossProject
     libraryDependencies ++= Seq(
       "org.scodec" %%% "scodec-core" % scodecVersion,
       macroParadise
-    ),
-    initialCommands := s"""
-      $commonImports
-    """
+    )
   )
 
 lazy val scodecJVM = scodec.jvm
@@ -163,7 +149,22 @@ lazy val commonSettings = Def.settings(
   metadataSettings,
   myDoctestSettings,
   scaladocSettings,
-  styleSettings
+  styleSettings,
+  initialCommands := s"""
+    import $rootPkg._
+    import $rootPkg.api._
+    import $rootPkg.api.Inference.==>
+    import $rootPkg.api.RefType.ops._
+    import $rootPkg.auto._
+    import $rootPkg.boolean._
+    import $rootPkg.char._
+    import $rootPkg.collection._
+    import $rootPkg.generic._
+    import $rootPkg.numeric._
+    import $rootPkg.string._
+    import shapeless.{ ::, HList, HNil }
+    import shapeless.nat._
+  """
 )
 
 lazy val submoduleSettings = Def.settings(
@@ -321,11 +322,6 @@ lazy val micrositeSettings = Def.settings(
   organizationName := "Frank S. Thomas"
 )
 
-lazy val miscSettings = Def.settings(
-  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
-  buildInfoPackage := s"$rootPkg.internal"
-)
-
 lazy val myDoctestSettings = Def.settings(
   doctestWithDependencies := false
 )
@@ -361,6 +357,6 @@ addCommandsAlias("validate",
                    "testJVM",
                    "coverageReport",
                    "coverageOff",
-                   "doc",
+                   "unidoc",
                    "docs/tut"
                  ))
